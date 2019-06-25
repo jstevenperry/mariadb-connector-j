@@ -37,24 +37,25 @@ jobs:
     dependsOn:
       - SSLFiles
     steps:
-      - task: DownloadPipelineArtifact@0
+      - task: DownloadPipelineArtifact@2
+        displayName: 'Download SSL files'
         inputs:
           artifactName: ssl_certs
           targetPath: $(System.DefaultWorkingDirectory)
 
-      - task: DownloadPipelineArtifact@1
+      - task: DownloadPipelineArtifact@2
         displayName: 'Download 10.4 enterprise server artifact files'
         inputs:
-          buildType: 'specific'
-          project: '6d15af64-176c-496d-b583-fd2ae21d4df4'
-          pipeline: 'mariadb-corporation.MariaDBEnterprise'
-          branchName: 'refs/heads/10.4-enterprise'
-          artifactName: Windows
-          definition: '3'
+          source: 'specific'
+          project: '550599d3-6165-4abd-8c86-e3f7e53a1847'
+          artifact: Windows
+          runVersion: 'specific'
+          runId: 373
           downloadPath: $(System.DefaultWorkingDirectory)
           #buildVersionToDownload: 'latest'
-          buildVersionToDownload: 'specific'
-          buildId: 373
+          #pipeline: 'mariadb-corporation.MariaDBEnterprise'
+          #branchName: 'refs/heads/10.4-enterprise'
+          #definition: '3'
       - script: |
           choco install jdk8 -ia "INSTALLDIR=""c:\java"""
           type C:\ProgramData\chocolatey\logs\chocolatey.log
@@ -89,6 +90,7 @@ jobs:
   - job: RunInContainer
     pool:
       vmImage: 'ubuntu-16.04'
+    displayName: 'test ubuntu xenial+bionic'
     dependsOn:
       - SSLFiles
     strategy:
@@ -104,7 +106,7 @@ jobs:
 
     steps:
 
-      - task: DownloadPipelineArtifact@0
+      - task: DownloadPipelineArtifact@2
         inputs:
           artifactName: ssl_certs
           targetPath: $(System.DefaultWorkingDirectory)
@@ -112,42 +114,30 @@ jobs:
       - script: /tmp/docker exec -t -u 0 $(containerImage) sh -c "apt-get update && DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confold" -y install sudo"
         displayName: Set up sudo
 
-      - task: DownloadPipelineArtifact@1
+      - task: DownloadPipelineArtifact@2
         displayName: 'Download 10.4 enterprise server artifact files'
         inputs:
-          buildType: 'specific'
+          source: 'specific'
+          project: '550599d3-6165-4abd-8c86-e3f7e53a1847'
+          artifact: '$(containerImage)-deb'
+          runVersion: 'specific'
+          runId: 371
           downloadPath: $(System.DefaultWorkingDirectory)
-          project: '6d15af64-176c-496d-b583-fd2ae21d4df4'
-          pipeline: 'mariadb-corporation.MariaDBEnterprise'
-          artifactName: $(containerImage)
-          branchName: 'refs/heads/10.4-enterprise'
-          #buildVersionToDownload: 'latest'
-          definition: '3'
-          buildVersionToDownload: 'specific'
-          buildId: 373
 
-      - task: DownloadPipelineArtifact@1
+
+      - task: DownloadPipelineArtifact@2
         displayName: 'Download galera server artifact files'
         inputs:
-          buildType: 'specific'
+          source: 'specific'
+          project: '550599d3-6165-4abd-8c86-e3f7e53a1847'
+          artifact: $(containerImage)
+          runVersion: 'specific'
+          runId: 337
           downloadPath: $(System.DefaultWorkingDirectory)
-          project: '6d15af64-176c-496d-b583-fd2ae21d4df4'
-          pipeline: 'mariadb-corporation.es-galera'
-          artifactName: $(containerImage)
-          branchName: 'refs/heads/es-mariadb-4.x'
-          #buildVersionToDownload: 'latest'
-          definition: '2'
-          buildVersionToDownload: 'specific'
-          buildId: 337
 
       - script: |
           ls -lrt .
-          echo "Installing server from deb"
           sudo ln -fs /usr/share/zoneinfo/UTC /etc/localtime
-          rm -R mariadb-plugin*
-          rm -R *-dev.deb
-          rm -R *-test.deb
-          chmod 777 .
 
           sudo apt-get update && sudo apt-get install -y --no-install-recommends apt-transport-https ca-certificates tzdata pwgen
           export DEBIAN_FRONTEND="noninteractive"
@@ -158,6 +148,13 @@ jobs:
           sudo apt-get install --allow-unauthenticated -y curl libdbi-perl rsync socat libnuma1 libaio1 zlib1g-dev libreadline5 libjemalloc1 libsnappy1v5 libcrack2 gawk lsof psmisc libaio1 perl libreadline5
 
           echo 'Installing deb files'
+          cd binary
+          ls -lrt .
+          rm -R mariadb-plugin*
+          rm -R *-dev.deb
+          rm -R *-test.deb
+          rm -R galera-arbitrator*
+          chmod 777 .
           sudo apt install -f -y ./*.deb
 
           sudo ls -lrt /etc/mysql/
