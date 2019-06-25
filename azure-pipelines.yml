@@ -50,7 +50,7 @@ jobs:
           project: '550599d3-6165-4abd-8c86-e3f7e53a1847'
           artifact: Windows
           runVersion: 'specific'
-          runId: 373
+          runId: 408
           downloadPath: $(System.DefaultWorkingDirectory)
           #buildVersionToDownload: 'latest'
           #pipeline: 'mariadb-corporation.MariaDBEnterprise'
@@ -121,7 +121,7 @@ jobs:
           project: '550599d3-6165-4abd-8c86-e3f7e53a1847'
           artifact: '$(containerImage)-deb'
           runVersion: 'specific'
-          runId: 371
+          runId: 408
           downloadPath: $(System.DefaultWorkingDirectory)
 
 
@@ -131,8 +131,9 @@ jobs:
           source: 'specific'
           project: '550599d3-6165-4abd-8c86-e3f7e53a1847'
           artifact: $(containerImage)
-          runVersion: 'specific'
-          runId: 337
+          runVersion: 'latestFromBranch'
+          pipeline: 2
+          runBranch: 'refs/heads/es-mariadb-4.x'
           downloadPath: $(System.DefaultWorkingDirectory)
 
       - script: |
@@ -149,13 +150,14 @@ jobs:
 
           echo 'Installing deb files'
           cd binary
-          ls -lrt .
-          rm -R mariadb-plugin*
-          rm -R *-dev.deb
-          rm -R *-test.deb
-          rm -R galera-arbitrator*
-          chmod 777 .
-          sudo apt install -f -y ./*.deb
+          ls -lrt binary
+          rm -R binary/mariadb-plugin*
+          rm -R binary/*-dev*.deb
+          rm -R binary/*-test*.deb
+          rm -R binary/galera-arbitrator*.deb
+          chmod 777 binary
+          sudo apt install -f -y binary/*.deb
+          cd ..
 
           sudo ls -lrt /etc/mysql/
           sudo bash -c 'echo "ssl-ca=$(System.DefaultWorkingDirectory)/tmp/ca.crt" >> /etc/mysql/mariadb-enterprise.cnf'
